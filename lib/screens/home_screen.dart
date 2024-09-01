@@ -1,16 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final String userId; // Pass the user ID to the HomeScreen
 
   const HomeScreen({Key? key, required this.userId}) : super(key: key);
+
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  int? _selectedWeek;
+  String _scoreMessage = '';
 
   Future<Map<String, dynamic>?> _fetchUserData() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('exams')
-          .doc(userId)
+          .doc(widget.userId)
           .get();
 
       if (snapshot.exists) {
@@ -22,6 +30,37 @@ class HomeScreen extends StatelessWidget {
     } catch (e) {
       print('Error fetching user data: $e');
       return null;
+    }
+  }
+
+  Future<void> _fetchScore(int week) async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection(
+              'exams') // Ensure this matches your Firestore collection name
+          .doc(widget.userId)
+          .get();
+
+      if (snapshot.exists) {
+        var data = snapshot.data() as Map<String, dynamic>;
+        var weekField = 'week$week'; // Example: 'week1', 'week2', etc.
+        print('Fetching score from field: $weekField'); // Debugging line
+        var score = data[weekField];
+        setState(() {
+          _scoreMessage = score != null
+              ? 'The student got a score of: $score'
+              : 'No score found for this week.';
+        });
+      } else {
+        setState(() {
+          _scoreMessage = 'User not found.';
+        });
+      }
+    } catch (e) {
+      print('Error fetching score: $e');
+      setState(() {
+        _scoreMessage = 'Error fetching score.';
+      });
     }
   }
 
@@ -91,6 +130,7 @@ class HomeScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(10.0),
                       ),
                     ),
+                    value: _selectedWeek,
                     items: List.generate(40, (index) => index + 1)
                         .map((week) => DropdownMenuItem<int>(
                               value: week,
@@ -98,8 +138,21 @@ class HomeScreen extends StatelessWidget {
                             ))
                         .toList(),
                     onChanged: (value) {
-                      // Handle week selection
+                      setState(() {
+                        _selectedWeek = value;
+                      });
+                      if (value != null) {
+                        _fetchScore(value);
+                      }
                     },
+                  ),
+                  const SizedBox(height: 20.0),
+                  Text(
+                    _scoreMessage,
+                    style: const TextStyle(
+                      fontSize: 18.0,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               );
