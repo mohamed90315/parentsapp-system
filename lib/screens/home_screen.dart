@@ -1,7 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({Key? key});
+  final String userId; // Pass the user ID to the HomeScreen
+
+  const HomeScreen({Key? key, required this.userId}) : super(key: key);
+
+  Future<Map<String, dynamic>?> _fetchUserData() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('exams')
+          .doc(userId)
+          .get();
+
+      if (snapshot.exists) {
+        return snapshot.data() as Map<String, dynamic>?;
+      } else {
+        print('User not found');
+        return null;
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
+      return null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -14,58 +36,75 @@ class HomeScreen extends StatelessWidget {
       body: Container(
         color: const Color(0xFFF5F5F5), // New Container background color
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(20.0),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20.0),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10.0,
-                    offset: Offset(0, 5),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        child: FutureBuilder<Map<String, dynamic>?>(
+          future: _fetchUserData(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else if (!snapshot.hasData || snapshot.data == null) {
+              return Center(child: const Text('User data not found.'));
+            } else {
+              final data = snapshot.data!;
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(
-                    Icons.person,
-                    size: 50.0, // Smaller icon size
-                    color: Colors.grey,
+                  Container(
+                    padding: const EdgeInsets.all(20.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 10.0,
+                          offset: Offset(0, 5),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.person,
+                          size: 50.0, // Smaller icon size
+                          color: Colors.grey,
+                        ),
+                        const SizedBox(height: 20.0),
+                        _buildUserInfoRow(
+                            'ID', data['id']?.toString() ?? 'N/A'),
+                        _buildUserInfoRow('Name', data['studentName'] ?? 'N/A'),
+                        _buildUserInfoRow('Phone', data['phone'] ?? 'N/A'),
+                        _buildUserInfoRow(
+                            'Location', data['location'] ?? 'N/A'),
+                        _buildUserInfoRow(
+                            'Senior', data['academicGrade'] ?? 'N/A'),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 20.0),
-                  _buildUserInfoRow('ID', '12345'),
-                  _buildUserInfoRow('Name', 'John Doe'),
-                  _buildUserInfoRow('Phone', '+1234567890'),
-                  _buildUserInfoRow('Location', 'New York, USA'),
-                  _buildUserInfoRow('Senior', 'Senior 1'),
+                  DropdownButtonFormField<int>(
+                    decoration: InputDecoration(
+                      labelText: 'Select Week',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10.0),
+                      ),
+                    ),
+                    items: List.generate(40, (index) => index + 1)
+                        .map((week) => DropdownMenuItem<int>(
+                              value: week,
+                              child: Text('Week $week'),
+                            ))
+                        .toList(),
+                    onChanged: (value) {
+                      // Handle week selection
+                    },
+                  ),
                 ],
-              ),
-            ),
-            const SizedBox(height: 20.0),
-            DropdownButtonFormField<int>(
-              decoration: InputDecoration(
-                labelText: 'Select Week',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                ),
-              ),
-              items: List.generate(40, (index) => index + 1)
-                  .map((week) => DropdownMenuItem<int>(
-                        value: week,
-                        child: Text('Week $week'),
-                      ))
-                  .toList(),
-              onChanged: (value) {
-                // Handle week selection
-              },
-            ),
-          ],
+              );
+            }
+          },
         ),
       ),
     );

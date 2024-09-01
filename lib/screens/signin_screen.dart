@@ -157,10 +157,12 @@ class _SignInScreenState extends State<SignInScreen> {
                   setState(() => _isLoading = false);
 
                   if (isValid) {
-                    Navigator.pushReplacement(
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => HomeScreen(),
+                        builder: (context) => HomeScreen(
+                            userId: _idController.text
+                                .trim()), // Pass actual user ID here
                       ),
                     );
                   } else {
