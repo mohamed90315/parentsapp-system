@@ -1,0 +1,49 @@
+{
+  "project_info": {
+    "project_number": "362796096790",
+    "firebase_url": "https://studentsystem-b31c2-default-rtdb.firebaseio.com",
+    "project_id": "studentsystem-b31c2",
+    "storage_bucket": "studentsystem-b31c2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:362796096790:android:622297ed3fea84be7ec437",
+        "android_client_info": {
+          "package_name": "com.example.login_signup"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHclLcONExMUaxMcTGqKFrBNzsgHXtXeM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:362796096790:android:a46fad9886e2411a7ec437",
+        "android_client_info": {
+          "package_name": "com.example.parentsapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHclLcONExMUaxMcTGqKFrBNzsgHXtXeM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
