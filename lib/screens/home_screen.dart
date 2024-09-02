@@ -13,8 +13,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int? _selectedWeek;
   String _scoreMessage = '';
+  String _studentPhone = '';
+  String _studentLocation = '';
 
-  Future<Map<String, dynamic>?> _fetchUserData() async {
+  // Fetch user data from 'exams' collection
+  Future<Map<String, dynamic>?> _fetchExamData() async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('exams')
@@ -24,20 +27,41 @@ class _HomeScreenState extends State<HomeScreen> {
       if (snapshot.exists) {
         return snapshot.data() as Map<String, dynamic>?;
       } else {
-        print('User not found');
+        print('Exam data not found for user');
         return null;
       }
     } catch (e) {
-      print('Error fetching user data: $e');
+      print('Error fetching exam data: $e');
       return null;
+    }
+  }
+
+  // Fetch user data from 'students' collection
+  Future<void> _fetchStudentData() async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('students')
+          .doc(widget.userId)
+          .get();
+
+      if (snapshot.exists) {
+        var data = snapshot.data() as Map<String, dynamic>;
+        setState(() {
+          _studentPhone = data['studentPhone'] ?? 'N/A';
+          _studentLocation = data['location'] ?? 'N/A';
+        });
+      } else {
+        print('Student data not found for user');
+      }
+    } catch (e) {
+      print('Error fetching student data: $e');
     }
   }
 
   Future<void> _fetchScore(int week) async {
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection(
-              'exams') // Ensure this matches your Firestore collection name
+          .collection('exams')
           .doc(widget.userId)
           .get();
 
@@ -53,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       } else {
         setState(() {
-          _scoreMessage = 'User not found.';
+          _scoreMessage = 'Exam data not found for user.';
         });
       }
     } catch (e) {
@@ -62,6 +86,12 @@ class _HomeScreenState extends State<HomeScreen> {
         _scoreMessage = 'Error fetching score.';
       });
     }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStudentData(); // Fetch student data initially
   }
 
   @override
@@ -76,14 +106,14 @@ class _HomeScreenState extends State<HomeScreen> {
         color: const Color(0xFFF5F5F5), // New Container background color
         padding: const EdgeInsets.all(20.0),
         child: FutureBuilder<Map<String, dynamic>?>(
-          future: _fetchUserData(),
+          future: _fetchExamData(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
             } else if (!snapshot.hasData || snapshot.data == null) {
-              return Center(child: const Text('User data not found.'));
+              return Center(child: const Text('Exam data not found.'));
             } else {
               final data = snapshot.data!;
               return Column(
@@ -114,9 +144,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         _buildUserInfoRow(
                             'ID', data['id']?.toString() ?? 'N/A'),
                         _buildUserInfoRow('Name', data['studentName'] ?? 'N/A'),
-                        _buildUserInfoRow('Phone', data['phone'] ?? 'N/A'),
                         _buildUserInfoRow(
-                            'Location', data['location'] ?? 'N/A'),
+                            'Phone', _studentPhone), // Display student phone
+                        _buildUserInfoRow('Location',
+                            _studentLocation), // Display student location
                         _buildUserInfoRow(
                             'Senior', data['academicGrade'] ?? 'N/A'),
                       ],
