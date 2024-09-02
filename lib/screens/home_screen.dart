@@ -19,13 +19,34 @@ class _HomeScreenState extends State<HomeScreen> {
   // Fetch user data from 'exams' collection
   Future<Map<String, dynamic>?> _fetchExamData() async {
     try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+      // Split the formatted userId to separate id and academicGrade.
+      final parts = widget.userId.split('_');
+      if (parts.length < 2) {
+        print('Invalid userId format. Expected "id_academicGrade".');
+        return null;
+      }
+
+      final userId = int.tryParse(parts[0]);
+      final academicGrade = parts[1];
+
+      if (userId == null) {
+        print('Invalid ID: ${parts[0]} is not a number.');
+        return null;
+      }
+
+      print(
+          'Fetching data for User ID: $userId, Academic Grade: $academicGrade');
+
+      // Query Firestore to match the correct 'id' and 'academicGrade'
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('exams')
-          .doc(widget.userId)
+          .where('id', isEqualTo: userId)
+          .where('academicGrade', isEqualTo: academicGrade)
           .get();
 
-      if (snapshot.exists) {
-        return snapshot.data() as Map<String, dynamic>?;
+      if (querySnapshot.docs.isNotEmpty) {
+        print('Found exam data for user');
+        return querySnapshot.docs.first.data() as Map<String, dynamic>;
       } else {
         print('Exam data not found for user');
         return null;
@@ -39,13 +60,16 @@ class _HomeScreenState extends State<HomeScreen> {
   // Fetch user data from 'students' collection
   Future<void> _fetchStudentData() async {
     try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+      final parts = widget.userId.split('_');
+      final userId = int.parse(parts[0]);
+
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('students')
-          .doc(widget.userId)
+          .where('id', isEqualTo: userId)
           .get();
 
-      if (snapshot.exists) {
-        var data = snapshot.data() as Map<String, dynamic>;
+      if (querySnapshot.docs.isNotEmpty) {
+        var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
         setState(() {
           _studentPhone = data['studentPhone'] ?? 'N/A';
           _studentLocation = data['location'] ?? 'N/A';
@@ -60,13 +84,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _fetchScore(int week) async {
     try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+      final parts = widget.userId.split('_');
+      final userId = int.parse(parts[0]);
+      final academicGrade = parts[1];
+
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('exams')
-          .doc(widget.userId)
+          .where('id', isEqualTo: userId)
+          .where('academicGrade', isEqualTo: academicGrade)
           .get();
 
-      if (snapshot.exists) {
-        var data = snapshot.data() as Map<String, dynamic>;
+      if (querySnapshot.docs.isNotEmpty) {
+        var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
         var weekField = 'week$week'; // Example: 'week1', 'week2', etc.
         print('Fetching score from field: $weekField'); // Debugging line
         var score = data[weekField];

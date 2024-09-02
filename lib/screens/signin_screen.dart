@@ -157,12 +157,15 @@ class _SignInScreenState extends State<SignInScreen> {
                   setState(() => _isLoading = false);
 
                   if (isValid) {
+                    // Combine id and senior to create formatted userId
+                    String formattedUserId =
+                        '${_idController.text.trim()}_${_selectedSenior!}';
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => HomeScreen(
-                            userId: _idController.text
-                                .trim()), // Pass actual user ID here
+                            userId: formattedUserId), // Pass formatted userId
                       ),
                     );
                   } else {
@@ -221,6 +224,10 @@ class _SignInScreenState extends State<SignInScreen> {
         idAsInt = int.parse(id.trim());
       } catch (e) {
         print('Invalid ID format');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('Invalid ID format. Please enter a number.')),
+        );
         return false;
       }
 
@@ -242,6 +249,9 @@ class _SignInScreenState extends State<SignInScreen> {
         return true; // A matching record is found
       } else {
         print('No matching record found');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Invalid ID or Senior. Try again.')),
+        );
         return false;
       }
     } catch (e) {
