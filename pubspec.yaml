@@ -14,7 +14,7 @@ dependencies:
   cupertino_icons: ^1.0.2  # Cupertino icons
   icons_plus: ^5.0.0       # Additional icons (optional)
   http: ^1.2.2             # HTTP client for making network requests
-  url_launcher: ^6.0.20    # Launch URLs in a browser or other apps
+  url_launcher: ^6.3.0    # Launch URLs in a browser or other apps
   pdf: ^3.11.1              # PDF generation
   printing: ^5.8.0         # PDF printing and sharing
   path_provider: ^2.0.11   # Path provider for getting directories
