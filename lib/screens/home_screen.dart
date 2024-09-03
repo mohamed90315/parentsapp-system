@@ -12,7 +12,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int? _selectedWeek;
+  int? _selectedAttendanceWeek;
   String _scoreMessage = '';
+  String _attendanceMessage = '';
   String _studentPhone = '';
   String _studentLocation = '';
   String _name = '';
@@ -114,6 +116,40 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _fetchAttendance(int week) async {
+    try {
+      final parts = widget.userId.split('_');
+      final userId = parts[0]; // id is a string
+
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('attendance')
+          .where('id', isEqualTo: userId)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
+        var attendanceData =
+            data['attendance'] as List<dynamic>; // List of attendance records
+        var weekData = attendanceData.firstWhere(
+            (attendance) => attendance['week'] == week,
+            orElse: () => {'status': 'N/A'}); // Default to 'N/A' if not found
+        setState(() {
+          _attendanceMessage =
+              'Attendance for week $week: ${weekData['status']}';
+        });
+      } else {
+        setState(() {
+          _attendanceMessage = 'Attendance data not found for user.';
+        });
+      }
+    } catch (e) {
+      print('Error fetching attendance: $e');
+      setState(() {
+        _attendanceMessage = 'Error fetching attendance.';
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -128,93 +164,130 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF4A90E2), // New AppBar color
       ),
       backgroundColor: const Color(0xFFE5E5E5), // New Scaffold background color
-      body: Container(
-        color: const Color(0xFFF5F5F5), // New Container background color
-        padding: const EdgeInsets.all(20.0),
-        child: FutureBuilder<Map<String, dynamic>?>(
-          future: _fetchExamData(),
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            } else if (snapshot.hasError) {
-              return Center(child: Text('Error: ${snapshot.error}'));
-            } else if (!snapshot.hasData || snapshot.data == null) {
-              return Center(child: const Text('Exam data not found.'));
-            } else {
-              final data = snapshot.data!;
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 10.0,
-                          offset: Offset(0, 5),
+      body: Stack(
+        children: [
+          Container(
+            color: const Color(0xFFF5F5F5), // New Container background color
+            padding: const EdgeInsets.all(20.0),
+            child: FutureBuilder<Map<String, dynamic>?>(
+              future: _fetchExamData(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                } else if (!snapshot.hasData || snapshot.data == null) {
+                  return Center(child: const Text('Exam data not found.'));
+                } else {
+                  final data = snapshot.data!;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20.0),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 10.0,
+                              offset: Offset(0, 5),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(
-                          Icons.person,
-                          size: 50.0, // Smaller icon size
-                          color: Colors.grey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(
+                              Icons.person,
+                              size: 50.0, // Smaller icon size
+                              color: Colors.grey,
+                            ),
+                            const SizedBox(height: 20.0),
+                            _buildUserInfoRow(
+                                'ID', data['id']?.toString() ?? 'N/A'),
+                            _buildUserInfoRow(
+                                'Name', _name), // Display student name
+                            _buildUserInfoRow('Phone', _studentPhone),
+                            _buildUserInfoRow('Location', _studentLocation),
+                            _buildUserInfoRow(
+                                'Senior', data['academicGrade'] ?? 'N/A'),
+                          ],
                         ),
-                        const SizedBox(height: 20.0),
-                        _buildUserInfoRow(
-                            'ID', data['id']?.toString() ?? 'N/A'),
-                        _buildUserInfoRow(
-                            'Name', _name), // Display student name
-                        _buildUserInfoRow('Phone', _studentPhone),
-                        _buildUserInfoRow('Location', _studentLocation),
-                        _buildUserInfoRow(
-                            'Senior', data['academicGrade'] ?? 'N/A'),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20.0),
-                  DropdownButtonFormField<int>(
-                    decoration: InputDecoration(
-                      labelText: 'Select Week',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10.0),
                       ),
-                    ),
-                    value: _selectedWeek,
-                    items: List.generate(40, (index) => index + 1)
-                        .map((week) => DropdownMenuItem<int>(
-                              value: week,
-                              child: Text('Week $week'),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _selectedWeek = value;
-                      });
-                      if (value != null) {
-                        _fetchScore(value);
-                      }
-                    },
-                  ),
-                  const SizedBox(height: 20.0),
-                  Text(
-                    _scoreMessage,
-                    style: const TextStyle(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              );
-            }
-          },
-        ),
+                      const SizedBox(height: 20.0),
+                      DropdownButtonFormField<int>(
+                        decoration: InputDecoration(
+                          labelText: 'Select Week for Score',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        value: _selectedWeek,
+                        items: List.generate(40, (index) => index + 1)
+                            .map((week) => DropdownMenuItem<int>(
+                                  value: week,
+                                  child: Text('Week $week'),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedWeek = value;
+                          });
+                          if (value != null) {
+                            _fetchScore(value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 20.0),
+                      Text(
+                        _scoreMessage,
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(
+                          height: 40.0), // Medium distance between selections
+                      DropdownButtonFormField<int>(
+                        decoration: InputDecoration(
+                          labelText: 'Select Week for Attendance',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        value: _selectedAttendanceWeek,
+                        items: List.generate(40, (index) => index + 1)
+                            .map((week) => DropdownMenuItem<int>(
+                                  value: week,
+                                  child: Text('Week $week'),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedAttendanceWeek = value;
+                          });
+                          if (value != null) {
+                            _fetchAttendance(value);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 20.0),
+                      Text(
+                        _attendanceMessage,
+                        style: const TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  );
+                }
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
