@@ -15,6 +15,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _scoreMessage = '';
   String _studentPhone = '';
   String _studentLocation = '';
+  String _name = '';
 
   // Fetch user data from 'exams' collection
   Future<Map<String, dynamic>?> _fetchExamData() async {
@@ -26,13 +27,8 @@ class _HomeScreenState extends State<HomeScreen> {
         return null;
       }
 
-      final userId = int.tryParse(parts[0]);
+      final userId = parts[0]; // id is a string
       final academicGrade = parts[1];
-
-      if (userId == null) {
-        print('Invalid ID: ${parts[0]} is not a number.');
-        return null;
-      }
 
       print(
           'Fetching data for User ID: $userId, Academic Grade: $academicGrade');
@@ -61,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchStudentData() async {
     try {
       final parts = widget.userId.split('_');
-      final userId = int.parse(parts[0]);
+      final userId = parts[0]; // id is a string
 
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('students')
@@ -70,9 +66,12 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (querySnapshot.docs.isNotEmpty) {
         var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
+        print('Fetched student data: $data'); // Debugging line
         setState(() {
           _studentPhone = data['studentPhone'] ?? 'N/A';
           _studentLocation = data['location'] ?? 'N/A';
+          _name = data['name'] ??
+              'N/A'; // Add this line if _studentName is a new state variable
         });
       } else {
         print('Student data not found for user');
@@ -85,7 +84,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _fetchScore(int week) async {
     try {
       final parts = widget.userId.split('_');
-      final userId = int.parse(parts[0]);
+      final userId = parts[0]; // id is a string
       final academicGrade = parts[1];
 
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
@@ -172,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 20.0),
                         _buildUserInfoRow(
                             'ID', data['id']?.toString() ?? 'N/A'),
-                        _buildUserInfoRow('Name', data['studentName'] ?? 'N/A'),
+                        _buildUserInfoRow('Name', data['name'] ?? 'N/A'),
                         _buildUserInfoRow(
                             'Phone', _studentPhone), // Display student phone
                         _buildUserInfoRow('Location',

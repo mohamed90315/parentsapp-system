@@ -157,15 +157,13 @@ class _SignInScreenState extends State<SignInScreen> {
                   setState(() => _isLoading = false);
 
                   if (isValid) {
-                    // Combine id and senior to create formatted userId
-                    String formattedUserId =
-                        '${_idController.text.trim()}_${_selectedSenior!}';
-
+                    // Pass formatted userId to HomeScreen
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => HomeScreen(
-                            userId: formattedUserId), // Pass formatted userId
+                            userId:
+                                '${_idController.text.trim()}_${_selectedSenior!}'),
                       ),
                     );
                   } else {
@@ -218,29 +216,15 @@ class _SignInScreenState extends State<SignInScreen> {
 
   Future<bool> _validateUser(String id, String academicGrade) async {
     try {
-      // Convert the ID to an integer
-      int idAsInt;
-      try {
-        idAsInt = int.parse(id.trim());
-      } catch (e) {
-        print('Invalid ID format');
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Invalid ID format. Please enter a number.')),
-        );
-        return false;
-      }
-
       // Trim the academicGrade
       academicGrade = academicGrade.trim();
 
-      print(
-          'Validating User with ID: $idAsInt and Academic Grade: $academicGrade');
+      print('Validating User with ID: $id and Academic Grade: $academicGrade');
 
       // Query Firestore for matching 'id' and 'academicGrade'
       QuerySnapshot querySnapshot = await FirebaseFirestore.instance
           .collection('exams')
-          .where('id', isEqualTo: idAsInt)
+          .where('id', isEqualTo: id.trim())
           .where('academicGrade', isEqualTo: academicGrade)
           .get();
 
