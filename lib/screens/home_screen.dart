@@ -71,7 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _studentPhone = data['studentPhone'] ?? 'N/A';
           _studentLocation = data['location'] ?? 'N/A';
           _name = data['name'] ??
-              'N/A'; // Add this line if _studentName is a new state variable
+              'N/A'; // Use the 'name' field from students collection
         });
       } else {
         print('Student data not found for user');
@@ -95,13 +95,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       if (querySnapshot.docs.isNotEmpty) {
         var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
-        var weekField = 'week$week'; // Example: 'week1', 'week2', etc.
-        print('Fetching score from field: $weekField'); // Debugging line
-        var score = data[weekField];
+        var examData = data['exams'] as List<dynamic>; // List of exam records
+        var weekData = examData.firstWhere((exam) => exam['week'] == week,
+            orElse: () => {'score': 'N/A'}); // Default to 'N/A' if not found
         setState(() {
-          _scoreMessage = score != null
-              ? 'The student got a score of: $score'
-              : 'No score found for this week.';
+          _scoreMessage = 'The student got a score of: ${weekData['score']}';
         });
       } else {
         setState(() {
@@ -171,11 +169,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 20.0),
                         _buildUserInfoRow(
                             'ID', data['id']?.toString() ?? 'N/A'),
-                        _buildUserInfoRow('Name', data['name'] ?? 'N/A'),
                         _buildUserInfoRow(
-                            'Phone', _studentPhone), // Display student phone
-                        _buildUserInfoRow('Location',
-                            _studentLocation), // Display student location
+                            'Name', _name), // Display student name
+                        _buildUserInfoRow('Phone', _studentPhone),
+                        _buildUserInfoRow('Location', _studentLocation),
                         _buildUserInfoRow(
                             'Senior', data['academicGrade'] ?? 'N/A'),
                       ],
