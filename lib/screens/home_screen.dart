@@ -13,11 +13,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int? _selectedWeek;
   int? _selectedAttendanceWeek;
+  int? _selectedPaymentWeek;
   String _scoreMessage = '';
   String _attendanceMessage = '';
+  String _paymentMessage = '';
   String _studentPhone = '';
   String _studentLocation = '';
   String _name = '';
+  Color _attendanceColor = Colors.black;
 
   // Fetch user data from 'exams' collection
   Future<Map<String, dynamic>?> _fetchExamData() async {
@@ -134,18 +137,69 @@ class _HomeScreenState extends State<HomeScreen> {
             (attendance) => attendance['week'] == week,
             orElse: () => {'status': 'N/A'}); // Default to 'N/A' if not found
         setState(() {
-          _attendanceMessage =
-              'Attendance for week $week: ${weekData['status']}';
+          if (weekData['status'] == 1) {
+            _attendanceMessage = 'Present';
+            _attendanceColor = Colors.green;
+          } else if (weekData['status'] == 0) {
+            _attendanceMessage = 'Absent';
+            _attendanceColor = Colors.red;
+          } else {
+            _attendanceMessage = 'N/A';
+            _attendanceColor = Colors.black;
+          }
         });
       } else {
         setState(() {
           _attendanceMessage = 'Attendance data not found for user.';
+          _attendanceColor = Colors.black;
         });
       }
     } catch (e) {
       print('Error fetching attendance: $e');
       setState(() {
         _attendanceMessage = 'Error fetching attendance.';
+        _attendanceColor = Colors.black;
+      });
+    }
+  }
+
+  Future<void> _fetchPayment(int week) async {
+    try {
+      final parts = widget.userId.split('_');
+      final userId = parts[0]; // id is a string
+
+      // Query the Firestore 'payments' collection using the userId
+      QuerySnapshot querySnapshot = await FirebaseFirestore.instance
+          .collection('payments')
+          .where('id', isEqualTo: userId)
+          .get();
+
+      if (querySnapshot.docs.isNotEmpty) {
+        var data = querySnapshot.docs.first.data() as Map<String, dynamic>;
+        var paymentData =
+            data['payments'] as List<dynamic>; // List of payment records
+
+        // Find the payment data for the specified week
+        var weekData = paymentData.firstWhere(
+            (payment) => payment['week'] == week,
+            orElse: () => {'paid': 'false'}); // Default to 'false' if not found
+
+        // Get the 'paid' value directly from Firestore
+        String paidStatus = weekData['paid'] ?? 'false';
+
+        // Update the state to reflect the payment status
+        setState(() {
+          _paymentMessage = 'Payment status for week $week: $paidStatus';
+        });
+      } else {
+        setState(() {
+          _paymentMessage = 'Payment data not found for user.';
+        });
+      }
+    } catch (e) {
+      print('Error fetching payment: $e');
+      setState(() {
+        _paymentMessage = 'Not paid yet';
       });
     }
   }
@@ -164,130 +218,173 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: const Color(0xFF4A90E2), // New AppBar color
       ),
       backgroundColor: const Color(0xFFE5E5E5), // New Scaffold background color
-      body: Stack(
-        children: [
-          Container(
-            color: const Color(0xFFF5F5F5), // New Container background color
-            padding: const EdgeInsets.all(20.0),
-            child: FutureBuilder<Map<String, dynamic>?>(
-              future: _fetchExamData(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (!snapshot.hasData || snapshot.data == null) {
-                  return Center(child: const Text('Exam data not found.'));
-                } else {
-                  final data = snapshot.data!;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20.0),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20.0),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 10.0,
-                              offset: Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(
-                              Icons.person,
-                              size: 50.0, // Smaller icon size
-                              color: Colors.grey,
-                            ),
-                            const SizedBox(height: 20.0),
-                            _buildUserInfoRow(
-                                'ID', data['id']?.toString() ?? 'N/A'),
-                            _buildUserInfoRow(
-                                'Name', _name), // Display student name
-                            _buildUserInfoRow('Phone', _studentPhone),
-                            _buildUserInfoRow('Location', _studentLocation),
-                            _buildUserInfoRow(
-                                'Senior', data['academicGrade'] ?? 'N/A'),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20.0),
-                      DropdownButtonFormField<int>(
-                        decoration: InputDecoration(
-                          labelText: 'Select Week for Score',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
+      body: SingleChildScrollView(
+        child: Container(
+          color: const Color(0xFFF5F5F5), // New Container background color
+          padding: const EdgeInsets.all(20.0),
+          child: FutureBuilder<Map<String, dynamic>?>(
+            future: _fetchExamData(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              } else if (!snapshot.hasData || snapshot.data == null) {
+                return Center(child: const Text('Exam data not found.'));
+              } else {
+                final data = snapshot.data!;
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 10.0,
+                            offset: Offset(0, 5),
                           ),
-                        ),
-                        value: _selectedWeek,
-                        items: List.generate(40, (index) => index + 1)
-                            .map((week) => DropdownMenuItem<int>(
-                                  value: week,
-                                  child: Text('Week $week'),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedWeek = value;
-                          });
-                          if (value != null) {
-                            _fetchScore(value);
-                          }
-                        },
+                        ],
                       ),
-                      const SizedBox(height: 20.0),
-                      Text(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(
+                            Icons.person,
+                            size: 50.0, // Smaller icon size
+                            color: Colors.grey,
+                          ),
+                          const SizedBox(height: 20.0),
+                          _buildUserInfoRow(
+                              'ID', data['id']?.toString() ?? 'N/A'),
+                          _buildUserInfoRow(
+                              'Name', _name), // Display student name
+                          _buildUserInfoRow('Phone', _studentPhone),
+                          _buildUserInfoRow('Location', _studentLocation),
+                          _buildUserInfoRow(
+                              'Senior', data['academicGrade'] ?? 'N/A'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Select Week for Score',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      value: _selectedWeek,
+                      items: List.generate(40, (index) => index + 1)
+                          .map((week) => DropdownMenuItem<int>(
+                                value: week,
+                                child: Text('Week $week'),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedWeek = value;
+                        });
+                        if (value != null) {
+                          _fetchScore(value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 29.0), // Reduced distance
+                    Transform.translate(
+                      offset: Offset(0,
+                          -10), // Adjust the vertical offset for score message
+                      child: Text(
                         _scoreMessage,
                         style: const TextStyle(
                           fontSize: 18.0,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(
-                          height: 40.0), // Medium distance between selections
-                      DropdownButtonFormField<int>(
-                        decoration: InputDecoration(
-                          labelText: 'Select Week for Attendance',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
+                    ),
+                    const SizedBox(height: 20.0), // Reduced distance
+                    DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Select Week for Attendance',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
                         ),
-                        value: _selectedAttendanceWeek,
-                        items: List.generate(40, (index) => index + 1)
-                            .map((week) => DropdownMenuItem<int>(
-                                  value: week,
-                                  child: Text('Week $week'),
-                                ))
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedAttendanceWeek = value;
-                          });
-                          if (value != null) {
-                            _fetchAttendance(value);
-                          }
-                        },
                       ),
-                      const SizedBox(height: 20.0),
-                      Text(
+                      value: _selectedAttendanceWeek,
+                      items: List.generate(40, (index) => index + 1)
+                          .map((week) => DropdownMenuItem<int>(
+                                value: week,
+                                child: Text('Week $week'),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedAttendanceWeek = value;
+                        });
+                        if (value != null) {
+                          _fetchAttendance(value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 29.0), // Reduced distance
+                    Transform.translate(
+                      offset: Offset(0,
+                          -10), // Adjust the vertical offset as needed (negative for upward, positive for downward)
+                      child: Text(
                         _attendanceMessage,
+                        style: TextStyle(
+                          fontSize: 18.0,
+                          fontWeight: FontWeight.bold,
+                          color: _attendanceColor,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20.0), // Reduced distance
+                    DropdownButtonFormField<int>(
+                      decoration: InputDecoration(
+                        labelText: 'Select Week for Payment',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      value: _selectedPaymentWeek,
+                      items: List.generate(40, (index) => index + 1)
+                          .map((week) => DropdownMenuItem<int>(
+                                value: week,
+                                child: Text('Week $week'),
+                              ))
+                          .toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedPaymentWeek = value;
+                        });
+                        if (value != null) {
+                          _fetchPayment(value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 29.0), // Reduced distance
+                    Transform.translate(
+                      offset: Offset(0,
+                          -10), // Adjust the vertical offset for payment message
+                      child: Text(
+                        _paymentMessage,
                         style: const TextStyle(
                           fontSize: 18.0,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
-                  );
-                }
-              },
-            ),
+                    ),
+                  ],
+                );
+              }
+            },
           ),
-        ],
+        ),
       ),
     );
   }
