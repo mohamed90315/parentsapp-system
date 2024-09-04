@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:parentsapp/screens/firebase_notifications%20.dart';
 import 'package:parentsapp/screens/welcome_screen.dart';
 import 'package:parentsapp/theme/theme.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -15,9 +16,11 @@ void main() async {
       storageBucket: 'studentsystem-b31c2.appspot.com',
     ),
   );
-
+  await FirebaseNotifications().initNoifications();
   runApp(MyApp());
 }
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -25,6 +28,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: lightMode,
