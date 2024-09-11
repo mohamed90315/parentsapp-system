@@ -1,0 +1,30 @@
+name: Build Flutter APK
+
+on:
+  push:
+    branches:
+      - main  # Trigger the workflow on pushes to the 'main' branch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # The OS environment for the job
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2  # Checks out your repository's code
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2  # Sets up Flutter environment
+        with:
+          flutter-version: 'latest'
+
+      - name: Install dependencies
+        run: flutter pub get  # Installs the dependencies for your Flutter project
+
+      - name: Build APK
+        run: flutter build apk --release  # Builds the APK in release mode
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: app-release.apk  # Name of the APK to upload
+          path: build/app/outputs/flutter-apk/app-release.apk  # Path to the APK file
